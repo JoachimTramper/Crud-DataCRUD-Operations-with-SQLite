@@ -28,7 +28,7 @@ def create_connection(db_file):
         print(e)
     return None
 
-database = 'D:\\Programs\Python\DBSQLite\chinook.db'                    #Database locatie
+database = 'D:\\Programs\\Python\\DBSQLite\\chinook.db'                    #Database locatie
 
 conn = create_connection(database)                                      #Connectie maken via functie
 
