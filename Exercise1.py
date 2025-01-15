@@ -1,24 +1,12 @@
-# Naam: Joachim Tramper
-
-# Bestand naam: EindopdrachtOpgave1.py
-
-# Opdracht 1, Toetsen, Gebruik van SQLite
-
-# Functie: Programma dat een database raadpleegd en een album top 10 als output heeft
-
-# Python versie: 3.9.13
-
-# IDLE: Wing 101 9 
-
-# Bestand laatst geweizigd: 09.02.2024
+# Script that queries a database and outputs a top 10 albums list.
 
 # Sample database: https://www.sqlitetutorial.net/sqlite-sample-database/
 
-import sqlite3                                                                  #Sqlite3 importeren voor gebruik databases
-
+import sqlite3                                                                  #Importing Sqlite3 for database usage
+                                              
 def create_connection(db_file):
     
-    """ Functie om connectie te realiseren met exception. """
+    """ Function to establish a connection with exception handling """
     
     try:
         conn = sqlite3.connect(db_file)
@@ -27,27 +15,39 @@ def create_connection(db_file):
         print(e)
     return None
 
-database = 'D:\\Programs\\Python\\DBSQLite\\chinook.db'                         #Database locatie
+database = 'D:\\Programs\\Python\\DBSQLite\\chinook.db'                         #Replace this with the path to your downloaded database
 
-conn = create_connection(database)                                              #Connectie maken via functie
+conn = create_connection(database)                                              #Establishing a connection via function
 
-cur = conn.cursor()                                                             #Cursor genereren
+cur = conn.cursor()                                                             #Generate cursor
 
-def top_tien_albums():
+def top_ten_albums():
     
-    """ Functie die database raadpleegt en tien meest verkochte albums als output geeft."""
+    """ Function that queries the database and outputs the ten best-selling albums"""
     
-    cur.execute(""" SELECT artists.Name, albums.AlbumId, albums.Title, COUNT(albums.AlbumId) AS TotaalAlbsVerkocht FROM albums
+    cur.execute(""" SELECT artists.Name, albums.AlbumId, albums.Title, COUNT(albums.AlbumId) AS TotalAlbumsSold FROM albums
     INNER JOIN artists ON albums.ArtistId = artists.ArtistId 
     INNER JOIN tracks ON albums.AlbumId = tracks.AlbumId
     INNER JOIN invoice_items ON tracks.TrackId = invoice_items.TrackId
     GROUP BY albums.AlbumId
-    ORDER BY TotaalAlbsVerkocht desc
-    limit 10; """)                                                              #Query waar via primary keys (ArtistId, AlbumId en TrackId tabellen worden  
-                                                                                #gelinkt en vervolgens de top 10 best verkochte albums worden geselecteerd
-    results = cur.fetchall()                                                    #Resultaat binnen halen van database                                                 
+    ORDER BY TotalAlbumsSold desc
+    limit 10; """)                                                              #Query where primary keys (ArtistId, AlbumId, and TrackId tables) are linked, and the top 10 best-selling albums are selected 
+                                                                                
+    results = cur.fetchall()                                                    #Fetch result from database                                                 
          
-    for x, result in enumerate(results):                                        #Enumerate build-in gebruiken om rijnummers te genereren
-        print(x + 1, str(result[0]), str(result[2]), str(result[3]), sep='\t')  #Print de benodigdheden in de juiste vorm, rijnummer start is 1
+    print(f"{'Rank':<5} {'Artist':<25} {'Album':<35} {'Total Sold':<10}")       #Print header
+    print("-" * 80)
+     
+    for i, result in enumerate(results):                                        #Print rows with adjusted column width
+        artist = result[0]
+        album = result[2]
+        total_sold = result[3]
+             
+        if len(artist) > 25:                                                    #Limit artist and album titles to fixed widths, add ellipsis if truncated
+            artist = artist[:22] + "..."
+        if len(album) > 35:
+            album = album[:32] + "..."
+        
+        print(f"{i + 1:<5} {artist:<25} {album:<35} {total_sold:<10}")
 
-top_tien_albums()                                                               #Functie uitvoeren
+top_ten_albums()                                                                #Excecute function

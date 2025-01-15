@@ -1,25 +1,13 @@
-# Naam: Joachim Tramper
-
-# Bestand naam: EindopdrachtOpgave2.py
-
-# Opdracht 2, Toetsen, Gebruik van SQLite
-
-# Functie: Programma dat een database raadpleegd en eventueel bewerkt met text bestand als invoer
-
-# Python versie: 3.9.13
-
-# IDLE: Wing 101 9 
-
-# Bestand laatst geweizigd: 09.02.2024
+# Program that queries and optionally edits a database using a text file as input
 
 # Sample database: https://www.sqlitetutorial.net/sqlite-sample-database/
 
-import sqlite3                                                          #Importeren benodigde modules
+import sqlite3                                                          #Import required modules
 import sys
 
 def create_connection(db_file): 
     
-    """Functie om connectie te realiseren met exception."""
+    """Function to establish a connection with exception handling"""
     
     try:
         conn = sqlite3.connect(db_file)
@@ -28,108 +16,111 @@ def create_connection(db_file):
         print(e)
     return None
 
-database = 'D:\\Programs\\Python\\DBSQLite\\chinook.db'                    #Database locatie
+database = 'D:\\Programs\\Python\\DBSQLite\\chinook.db'                 #Replace this with the path to your downloaded database
 
-conn = create_connection(database)                                      #Connectie maken via functie
+conn = create_connection(database)                                      #Establishing connection via function
 
-cur = conn.cursor()                                                     #Cursor genereren
+cur = conn.cursor()                                                     #Generate cursor
 
-bestand = input('Geef de naam van het te importeren bestand: ')         #Gebruiker om bestandnaam vragen
+file_name = input('Enter the name of the file to import: ')                  #Prompt the user for the file name
 
-def open_bestand():
+def open_file():
     
-    """Functie om text bestand te checken met exceptions."""
+    """Function to check the text file with exception handling"""
     
     try:
-        file = open(bestand, 'rt')
-    except FileNotFoundError:                                           #FileNotFoundError met bericht en exit
-        print('Bestand niet gevonden.')
+        file = open(file_name, 'rt')
+    except FileNotFoundError:                                           #FileNotFoundError with a message and exit
+        print('File not found')
         sys.exit()
-    except OSError:                                                     #OSError met bericht en exit
-        print('Kan bestand niet openen.')
+    except OSError:                                                     #OSError with a message and exit
+        print('Cannot open file')
         sys.exit()
-    except Exception:                                                   #Algemene exception om overige exceptions af te vangen en exit
-        print('Er is iets verkeerd gegaan.')
+    except Exception:                                                   #General exception to catch other exceptions and exit
+        print('Something went wrong')
         sys.exit()
-    file.close()                                                        #Bestand sluiten
+    file.close()                                                        #Close file
 
 def check_playlist_exist():
     
-    """Functie die checked of ingevoerde playlist al bestaat in de database."""
+    """Function that checks if the entered playlist already exists in the database"""
     
-    plnaam = input('Geef de naam van de playlist: ')                    #Vraag gebruiker om naam van de playlist
-    cur.execute("""SELECT Name FROM playlists WHERE Name = ?""", (plnaam,)) #Database raadplegen om naam te selecteren mocht deze gelijk zijn aan invoer
-    plnaam_check = cur.fetchall()                                       #Resultaat binnenhalen van database 
-    if plnaam_check == []:                                              #Als plnaam_check een lege lijst is betekent dit dat er geen playlist in de database bestaat met dezelfde naam
-        cur.execute("""INSERT INTO playlists (Name) VALUES (?)""", (plnaam,))   #Naam van ingevoerde playlist in database invoeren
-        conn.commit()                                                   #Veranderingen in database gelijk realiseren
-        print('--- Start import van playlist ---')                      #Alles is ingevoerd en goedgekeurd, het importeren van de tracks mag beginnen
+    plname = input('Enter the name of the playlist: ')                  #Prompt the user for the name of the playlist
+    cur.execute("""SELECT Name FROM playlists WHERE Name = ?""", (plname,)) #Query the database to select the name if it matches the input
+    plname_check = cur.fetchall()                                       #Fetch the result from the database
+    if plname_check == []:                                              #If plname_check is an empty list, it means that no playlist exists in the database with the same name
+        cur.execute("""INSERT INTO playlists (Name) VALUES (?)""", (plname,))   #Insert the name of the entered playlist into the database
+        conn.commit()                                                   #Apply changes to the database immediately
+        print('--- Starting the import of the playlist... ---')         #Everything has been entered and approved, the import of the tracks may begin
     else:
-        print('Deze playlist bestaat al.')                              #Als plnaam_check niet gelijk is aan een lege list komt de naam al voor in de database, bericht en exit
+        print('This playlist already exists')                           #If plname_check is not equal to an empty list, the name already exists in the database, display a message and exit
         sys.exit()
 
 def split_playlist(file1):
     
-    """ Functie die ingevoerd text bestand omzet in een list, zonder lege items"""
+    """Function that converts the entered text file into a list, excluding empty items"""
     
-    with open(file1, 'rt') as f:                                        #Bestand openen zonder exceptions, dit is eerder al gedaan
-        regel = f.read().split('\n')                                    #Text bestand regels splitten
-        bewerkt_bestand = list(filter(None, regel))                     #Lege list items verwijderen
-        return bewerkt_bestand                                          #Output functie, list zonder lege items
+    with open(file1, 'rt') as f:                                        #Open the file without exceptions, as this has already been handled earlier
+        line = f.read().split('\n')                                     #Split the lines of the text file
+        updated_file = list(filter(None, line))                         #Remove empty list items
+        return updated_file                                             #Output function, list without empty items
 
 def check_tracks():
     
-    """ Functie die list items afzonderlijk vergelijkt met de database en deze toevoegd, 
-        een foutmelding geeft wanneer niet gevonden of een keuzemenu geeft wanneer de invoer 
-        overeen komt met een deel van verschillende tracks in de database. Waar 
-        vervolgens een keuze uit gemaakt moet worden en vervolgens wordt toevoegd."""
+    """Function that compares list items individually with the database and adds them, 
+        gives an error message when not found, or displays a menu when the input matches 
+        a partial name of multiple tracks in the database. The user must then choose from 
+        the options, and the selected track is added"""
     
-    tracklist = split_playlist(bestand)                                 #Tracklist genereren via split_playlist functie 
-    cur.execute(""" SELECT PlaylistId FROM playlists """)               #PlaylistID van playlist tabel selecteren
-    playlist_id = cur.lastrowid                                         #Playlist ID verkrijgen via ingevoerde playlist, eerst volgend nummer in de linker kolom van de tabel 
-    for track in tracklist:                                             #'For' loop om regel voor regel te vergelijken
+    tracklist = split_playlist(file_name)                                    #Generate the tracklist using the split_playlist function
+    cur.execute(""" SELECT PlaylistId FROM playlists """)               #Select the PlaylistID from the playlist table
+    playlist_id = cur.lastrowid                                         #Obtain the Playlist ID for the entered playlist, as the next sequential number in the leftmost column of the table
+    for track in tracklist:                                             #For loop to compare line by line
         cur.execute(""" SELECT tracks.TrackId, tracks.Name, artists.Name
                 FROM tracks INNER JOIN albums ON tracks.AlbumId = albums.AlbumId       
                 INNER JOIN artists ON albums.ArtistId = artists.ArtistId      
-                WHERE tracks.name LIKE(?||'%%')""", (track,))           #Database raadplegen voor (gedeeltelijke) overeenkomende tracks
-        results = cur.fetchall()                                        #Resultaat binnenhalen van database
-        if len(results) == 1:                                           #Als lengte 1 is, is de juiste track gevonden
-            track_id = results[0][0]                                    #Gewenst track_id is het eerste onderdeel van de eerste tuple in list                         
-            cur.execute("""INSERT INTO playlist_track (PlaylistId, TrackId) VALUES (?, ?)""", (playlist_id, track_id))  #Track ID invoeren met playlist ID
-            conn.commit()                                               #Veranderingen in database gelijk realiseren                                 
-        if len(results) == 0:                                           #Als lengte list gelijk is aan 0, zijn er geen tracks gevonden
-            print('--- Geen tracks gevonden voor',(track),'---')        #Bericht naar gebruiker met invoer
-        if len(results) > 1:                                            #Als lengte groter dan 1 is zijn er meerdere opties voor de gebruiker om uit te kiezen
-            print('Maak een keuze uit de volgende tracks')
-            for x, result in enumerate(results):                        #Enumerate build-in gebruiken om rijnummers te genereren
-                print(x + 1, str(result[1]), str(result[2]), sep='\t')  #Print de benodigdheden in de juiste vorm voor de gebruiker, rijnummer start is 1 
-            while True:                                                 #While loop starten, zodat gebruiker juiste invoer geeft
+                WHERE tracks.name LIKE(?||'%%')""", (track,))           #Query the database for (partial) matching tracks
+        results = cur.fetchall()                                        #Fetch the result from the database
+        if len(results) == 1:                                           #If the length is 1, the correct track has been found
+            track_id = results[0][0]                                    #The desired track_id is the first element of the first tuple in the list                         
+            cur.execute("""INSERT INTO playlist_track (PlaylistId, TrackId) VALUES (?, ?)""", (playlist_id, track_id))  #Insert the Track ID with the Playlist ID
+            conn.commit()                                               #Apply changes to the database                                  
+        if len(results) == 0:                                           #If the length of the list is 0, no tracks were found
+            print('--- No tracks found for',(track),'---')              #Message to the user with input
+        if len(results) > 1:                                            #If the length is greater than 1, there are multiple options for the user to choose from
+            print('Make a selection from the following tracks')
+            print(f"{'Choice':<5} {'Track Name':<45} {'Artist':<25}")   #Aligned header
+            print("-" * 75)                                             #Line below the header for clarity
+            for x, result in enumerate(results):
+                print(f"{x + 1:<5} {result[1]:<45} {result[2]:<25}")    #Ensure each row is properly aligned
+
+            while True:                                                 #While loop to ensure the user provides the correct input
                 try:
-                    keuze = int(input('Uw keuze: '))                    #Try except block starten om exceptions af te vangen
-                    if  keuze < 1:                                      #Negatieven en 0 invoer afvangen
-                        raise ValueError('Invoer moet een integer binnen het keuzemenu zijn.')  
-                    track_keuze = results[keuze-1]
-                except (ValueError, IndexError):                        #ValueError en IndexError afvangen
-                    print('Invoer moet een integer binnen het keuzemenu zijn.')                                  
+                    choice = int(input('Your choice: '))                #Start try-except block to catch exceptions
+                    if  choice < 1:                                     #Handle negative and zero input
+                        raise ValueError('The input must be an integer within the selection menu')  
+                    track_choice = results[choice-1]
+                except (ValueError, IndexError):                        #Catch ValueError and IndexError
+                    print('The input must be an integer within the selection menu')                                  
                 except Exception:
-                    print('Er is iets verkeerd gegaan.')                #Overige exceptions afvangen
-                else:                                                   #Else keyword om loop te verlaten
+                    print('Something went wrong')                       #Catch other exceptions
+                else:                                                   #Else keyword to exit the loop
                     break
-            track_id = track_keuze[0]                                   #Track ID is het eerste onderdeel van de track keuze list 
-            cur.execute("""INSERT INTO playlist_track (PlaylistId, TrackId) VALUES (?, ?)""", (playlist_id, track_id))  #Track toevoegen aan playlist
-            conn.commit()                                               #Veranderingen in database gelijk realiseren
+            track_id = track_choice[0]                                  #The Track ID is the first element of the track choice list
+            cur.execute("""INSERT INTO playlist_track (PlaylistId, TrackId) VALUES (?, ?)""", (playlist_id, track_id))  #Add the track to the playlist
+            conn.commit()                                               #Apply changes to the database 
             
-    conn.close()                                                        #Connectie met database afsluiten
-    print('--- Import van playlist gereed ---')                         #Importeren is gereed       
+    conn.close()                                                        #Close the connection to the database
+    print('--- Import of playlist complete ---')                        #Import is complete     
     
 def main():   
     
-    """ Main functie met de uit te voeren functies voor overzicht.""" 
+    """Main function with the functions to be executed""" 
     
-    open_bestand()
+    open_file()
     check_playlist_exist()
     check_tracks()  
 
-if __name__ == '__main__':                                              #Main functie uitvoeren
+if __name__ == '__main__':                                              #Execute main function
     main()
 
